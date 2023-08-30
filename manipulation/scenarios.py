@@ -68,7 +68,7 @@ ycb = [
 def AddIiwa(plant, collision_model="no_collision"):
     parser = Parser(plant)
     iiwa = parser.AddModelsFromUrl(
-        f"package://drake/manipulation/models/iiwa_description/iiwa7/iiwa7_{collision_model}.sdf"
+        f"package://drake/manipulation/models/iiwa_description/sdf/iiwa14_{collision_model}.sdf"
     )[0]
     plant.WeldFrames(plant.world_frame(), plant.GetFrameByName("iiwa_link_0"))
 

@@ -136,13 +136,13 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
     clear.</p>
 
     <p><img style="height:90px;float:left;margin-right:10px"
-    src="figures/frames.png"/> There are a few very special frames.
-    We use $W$ to denote the <i>world frame</i>.  We think about the world frame
-    in Drake using vehicle coordinates (positive $x$ to the front, positive $y$
-    to the <i>left</i>, and positive $z$ is up).  The other particularly special
-    frames are the <i>body frames</i>: every body in the multibody system has a
-    unique frame attached to it.  We'll typically use $B_i$ to denote the frame
-    for body $i$.</p>
+    src="figures/frames.png"/> There are a few very special frames. We use $W$
+    to denote the <i>world frame</i>.  We think about the world frame in Drake
+    using vehicle coordinates (positive $x$ to the front, positive $y$ to the
+    <i>left</i>, and positive $z$ is up).  The other particularly special
+    frames are the <i>body frames</i>: every body in the multibody physics
+    engine has a unique frame attached to it.  We'll typically use $B_i$ to
+    denote the frame for body $i$.</p>
 
     <p>Frames have a position, too -- it coincides with the frame origin.  So it
     is perfectly valid to write $^Wp^A_W$ to denote the position of point $A$
@@ -477,12 +477,16 @@ pose = plant.EvalBodyPoseInWorld(context, gripper)</pre></code>
         function?</p>
 
         <p>This gets into the subtle points of how we represent transforms, and
-        <a href="#3D_rotation">how we represent 3D rotations</a> in particular.  Although we use rotation matrices in our <code>RigidTransform</code> class, in order to make the spatial algebra efficient, we actually use unit quaternions in the <code>Context</code> in order to have a more compact vector representation.</p>
+        <a href="#3D_rotation">how we represent 3D rotations</a> in particular.
+        Although we use rotation matrices in our <code>RigidTransform</code>
+        class, in order to make the spatial algebra efficient, we actually use
+        unit quaternions in the configuration vector $q,$ and in the
+        <code>Context</code> in order to have a compact representation.</p>
 
         <p>As a result, for this example, the software implementation of the
         function $f_{kin}^B$ is precisely the function that converts the
-        position $\times$ unit quaternion representation into the position
-        $\times$ rotation matrix representation.</p>
+        position $\times$ unit quaternion representation into the pose
+        (position $\times$ rotation matrix) representation.</p>
       </example>
 
     </subsection>
@@ -578,30 +582,27 @@ pose = plant.EvalBodyPoseInWorld(context, gripper)</pre></code>
     {}^A\omega^B \times {}^Bp^{B_A}_A \end{bmatrix} = \begin{bmatrix} {}^A
     \omega^{B} \\ {}^A\text{v}^B - {}^A\omega^B \times {}^Ap^{B}
     \end{bmatrix}.\end{equation}
-  </p></ul> </details>
+    </p></ul> </details>
 
-    <!--
-    <p>Why is it that we can get away with just three components for spatial
-    velocity, but not for rotations?  In short, this is because a three 
-    component vector has both a direction (which we use to denote the axis) and 
-    a magnitude.  Using the magnitude to denote an angle is degenerate because 
-    our representation should be periodic in $2\pi$, but using them for angular
-    velocities doesn't have this problem. Using sine of the angle resolves it,
-    but we also need to store the cosine; that's <a
-    href="https://en.wikipedia.org/w/index.php?title=Quaternions_and_spatial_rotation&section=14#The_hypersphere_of_rotations">precisely
-    what happens</a> in the unit quaternions!</p>  -->
+    <p>Why is it that we can get away with just three components for angular
+    velocity, but not for rotations?  Using the magnitude of an axis-angle
+    representation to denote an angle is degenerate because our representation
+    of angles should be periodic in $2\pi$, but using the magnitude of the
+    angular velocity is ok because angular velocities take values from $(-\inf,
+    \inf)$ without wrapping.</p>
 
     <p>There is one more velocity to be aware of: I'll use $v$ to denote the
-    generalized velocity vector of the plant.  While a spatial velocity $^AV^B$
-    is six components, a translational or angular velocity, $^B\text{v}^C$ or
-    $^B\omega^C$, is three components, the generalized velocity vector is whatever
-    size it needs to be to encode the time derivatives of the configuration
-    variables, $q$.  For the iiwa welded to the world frame, that means it has
-    seven components.  I've tried to be careful to typeset each of these v's
-    differently throughout the notes. Almost always the distinction is also
-    clear from the context.</p>
+    generalized velocity vector of the plant, which is closely related to the
+    time-derivative of $q$ (see below).  While a spatial velocity $^AV^B$ is
+    six components, a translational or angular velocity, $^B\text{v}^C$ or
+    $^B\omega^C$, is three components, the generalized velocity vector is
+    whatever size it needs to be to encode the time derivatives of the
+    configuration variables, $q$.  For the iiwa welded to the world frame, that
+    means it has seven components.  I've tried to be careful to typeset each of
+    these v's differently throughout the notes. Almost always the distinction
+    is also clear from the context.</p>
 
-    <example><h1>Don't assume $\dot{q} \equiv v$</h1>
+    <example id="qdot_vs_v"><h1>Don't assume $\dot{q} \equiv v$</h1>
     
       <p>The unit quaternion representation is four components, but these must
       form a "unit vector" of length 1.  Rotation matrices are 9 components, but
@@ -652,19 +653,22 @@ plant.num_velocities() = 6</pre></code></p>
     "analytic Jacobian", which refers to the explicit partial derivative of the
     forward kinematics (as written in \eqref{eq:jacobian}), and "geometric
     Jacobian" which replaces 3D rotations on the left-hand side with spatial
-    velocities.  In Drake's <code>MultibodyPlant</code>, we currently offer the geometric Jacobian versions via
+    velocities.  In Drake's <code>MultibodyPlant</code>, we currently offer the
+    geometric Jacobian versions via
     <ul>
       <li> <code>CalcJacobianAngularVelocity</code>,</li>
       <li><code>CalcJacobianTranslationalVelocity</code>, and</li>
       <li><code>CalcJacobianSpatialVelocity</code>,</li>
     </ul> with each taking an argument to specify whether you'd like the
     Jacobian with respect to $\dot{q}$ or $v$. If you really like the
-    analytical Jacobian, you could get it (much less efficiently) using our
+    analytical Jacobian, you could get it (much less efficiently) using Drake's
     support for automatic differentiation.</p>
 
     <example><h1>Kinematic Jacobians for pick and place</h1>
     
-      <p>Let's repeat the setup from above, but we'll print out the Jacobian of the gripper frame, measured from the world frame, expressed in the world frame.</p>
+      <p>Let's repeat the setup from above, but we'll print out the Jacobian of
+      the gripper frame, measured from the world frame, expressed in the world
+      frame.</p>
 
       <script>document.write(notebook_link('pick', d=deepnote, link_text="", notebook="jacobian"))</script>
 
@@ -1388,7 +1392,7 @@ plant.num_velocities() = 6</pre></code></p>
   </exercise>
 
   <exercise id="planar_manipulator"><h1>Planar Manipulator</h1>
-      <p> For this exercise you will derive the translational forward kinematics ${^A}p{^C}=f(q)$ and the translational Jacobian $J(q)$ of a planar two-link manipulator. You will work exclusively in <script>document.write(notebook_link('planar_manipulator', deepnote['exercises/pick'], link_text='this notebook'))</script>. You will be asked to complete the following steps: </p>
+      <p> For this exercise you will derive the translational forward kinematics ${^A}p{^C}=f(q)$ and the translational Jacobian $J(q)$ of a planar two-link manipulator. You will work exclusively in <script>document.write(notebook_link('pick', d=deepnote, link_text='this notebook', notebook='05_planar_manipulator'))</script>. You will be asked to complete the following steps: </p>
 
       <ol type="a">
         <li> Derive the forward kinematics of the manipulator. </li>
@@ -1398,7 +1402,7 @@ plant.num_velocities() = 6</pre></code></p>
   </exercise>
 
   <exercise id="jacobian_exploration"><h1>Exploring the Jacobian</h1>
-      <p>Exercise 3.5 asked you to derived the translational Jacobian for the
+      <p>Exercise 3.5 asked you to derive the translational Jacobian for the
       planar two-link manipulator. In this problem we will explore the
       translational Jacobian in more detail, both in the context of a planar
       two-link manipulator and in the context of a planar three-link
@@ -1416,7 +1420,7 @@ plant.num_velocities() = 6</pre></code></p>
           inverse that can be computed? (when can the inverse be computed
           exactly? when can it not?)</li><br/>
           <li>Below, for the planar two-link manipulator, we draw the unit
-          circle of joint velocities in the $\dot{\theta_{1}}-\dot{\theta_{2}}$
+          circle of joint velocities in the $\dot{q_{1}}-\dot{q_{2}}$
           plane. This circle is then mapped through the translational Jacobian
           to an ellipse in the end effector velocity space. In other words,
           this visualizes that the translational Jacobian maps the space of
@@ -1434,12 +1438,12 @@ plant.num_velocities() = 6</pre></code></p>
 
       <figure>
           <img style="width:80%", src="figures/exercises/manipulability.png"/>
-          <figcaption>Manipulability ellipsoids for two different postures of the planar two-link manipulator. Source: Lynch, Kevin M., and Frank C. Park. Modern robotics. Cambridge University Press, 2017.</figcaption>
+          <figcaption>Manipulability ellipsoids for two different postures of the planar two-link manipulator. Adapted from <elib>Lynch17</elib>.</figcaption>
       </figure>
   </exercise>
 
   <exercise id="spatial_transforms"><h1>Spatial Transforms and Grasp Pose</h1>
-      <p> For this exercise you will apply your knowledge on spatial algebra to write poses of frames in different reference frames, and design a grasp pose yourself. You will work exclusively in <script>document.write(notebook_link('rigid_transforms', deepnote['exercises/pick'], link_text='this notebook'))</script>. You will be asked to complete the following steps: </p>
+      <p> For this exercise you will apply your knowledge on spatial algebra to write poses of frames in different reference frames, and design a grasp pose yourself. You will work exclusively in <script>document.write(notebook_link('pick', d=deepnote, link_text='this notebook', notebook='07_rigid_transforms'))</script>. You will be asked to complete the following steps: </p>
 
       <ol type="a">
         <li> Express poses of frames in different reference frames using spatial algebra. </li>
@@ -1448,7 +1452,7 @@ plant.num_velocities() = 6</pre></code></p>
   </exercise>
 
   <exercise id="robot_painter"><h1>The Robot Painter</h1>
-      <p> For this exercise you will design interesting trajectories for the robot to follow, and observe the robot virtually painting in the air! You will work exclusively in <script>document.write(notebook_link('robot_painter', deepnote['exercises/pick'], link_text='this notebook'))</script>. You will be asked to complete the following steps: </p>
+      <p> For this exercise you will design interesting trajectories for the robot to follow, and observe the robot virtually painting in the air! You will work exclusively in <script>document.write(notebook_link('pick', d=deepnote, link_text='this notebook', notebook='08_robot_painter'))</script>. You will be asked to complete the following steps: </p>
 
       <ol type="a">
         <li> Design and compute the poses of key frames of a designated trajectory. </li>
@@ -1457,11 +1461,11 @@ plant.num_velocities() = 6</pre></code></p>
   </exercise>  
 
   <exercise id="intro_to_qp"><h1>Introduction to QPs</h1>
-      <p> For this exercise you will practice the syntax of solving Quadratic Programs (QPs) via Drake's MathematicalProgram interface. You will work exclusively in <script>document.write(notebook_link('intro_to_qp', deepnote['exercises/pick'], link_text='this notebook'))</script>.</p> 
+      <p> For this exercise you will practice the syntax of solving Quadratic Programs (QPs) via Drake's MathematicalProgram interface. You will work exclusively in <script>document.write(notebook_link('pick', d=deepnote, link_text='this notebook', notebook='09_intro_to_qp'))</script>.</p> 
   </exercise>  
 
   <exercise id="virtual_wall"><h1>Virtual Wall</h1>
-      <p> For this exercise you will implement a virtual wall for a robot manipulator, using an optimization-based approach to differential inverse kinematics. You will work exclusively in <script>document.write(notebook_link('differential_ik_optimization', deepnote['exercises/pick'], link_text='this notebook'))</script>. You will be asked to complete the following steps: </p>
+      <p> For this exercise you will implement a virtual wall for a robot manipulator, using an optimization-based approach to differential inverse kinematics. You will work exclusively in <script>document.write(notebook_link('pick', d=deepnote, link_text='this notebook', notebook='10_differential_ik_optimization'))</script>. You will be asked to complete the following steps: </p>
 
       <ol type="a">
         <li> Implement a optimization-based differential IK controller with joint velocity limits. </li>

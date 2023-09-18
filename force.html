@@ -900,12 +900,12 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
       to functionality provided by the iiwa driver.)</p>
   
       <p>You might also notice that the interface we provide to the
-      <code>ManipulationStation</code> takes a desired joint position for the
-      robot, but not a desired joint velocity.  That is because we cannot
-      actually send a desired joint velocity to the iiwa controller.  In
-      practice, we believe that they are numerically differentiating our
-      position commands to obtain the desired velocity, which adds a delay of a
-      few control timesteps (and sometimes <a
+      <code>IiwaDriver</code> in the <code>HardwareStation</code> takes a
+      desired joint position for the robot, but not a desired joint velocity.
+      That is because we cannot actually send a desired joint velocity to the
+      iiwa controller.  In practice, we believe that they are numerically
+      differentiating our position commands to obtain the desired velocity,
+      which adds a delay of a few control timesteps (and sometimes <a
       href="https://github.com/RobotLocomotion/drake/issues/11955#issuecomment-524467883">non-monotonic
       behavior</a>).  I believe that the reason why we aren't allowed to send
       our own joint velocity commands is to to make the passivity argument in
@@ -1046,7 +1046,7 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
 
 
     <exercise id="hybrid_book_push"><h1>Hybrid Force-Position Control</h1>
-      <p> For this exercise, you will analyze and implement a hybrid force-position controller to drag a book, as we saw from <a href="https://www.youtube.com/watch?v=PngdQGEUi7w&ab_channel=JiajiZhou">this video</a> during lecture. You will work exclusively in <script>document.write(notebook_link('hybrid_force_position', deepnote['exercises/force'], link_text='this notebook'))</script>. You will be asked to complete the following steps: </p>
+      <p> For this exercise, you will analyze and implement a hybrid force-position controller to drag a book, as we saw from <a href="https://www.youtube.com/watch?v=PngdQGEUi7w&ab_channel=JiajiZhou">this video</a> during lecture. You will work exclusively in <script>document.write(notebook_link('force', d=deepnote, link_text='this notebook', notebook='hybrid_force_position'))</script>. You will be asked to complete the following steps: </p>
 
       <ol type="a">
         <li> Analyze the conditions for this motion to be feasible. 

@@ -69,18 +69,24 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
   they will also form a baseline for the more sophisticated methods we will
   study.</p>
 
-  <p>The approach that we'll take here is very geometric.  This is in contrast
-  to, and very complimentary with, approaches that are more fundamentally driven
-  by data.  There is no question that deep learning has had an enormous impact
-  in perception -- it's fair to say that it has enabled the current surge in
-  manipulation advances -- and we will certainly cover it in these notes.  But
-  when I've heard colleagues say that "all perception these days is based on
-  deep learning", I can't help but cry foul.  There has been another surge of
-  progress in the last few years that has been happening in parallel: the
-  revolution in geometric reasoning, fueled by applications in autonomous
-  driving and virtual/augmented reality in addition to manipulation.  Most
-  advanced manipulation systems these days combine both "deep perception" and
-  "geometric perception".</p>
+  <p>The approach that we'll take in this chapter is based on geometry. Not all
+  perception systems these days use geometry explicitly; many deep learning
+  approaches learn more direct maps from pixels. But many deep learning
+  approaches <i>do</i> build heavily on geometry, and indeed the last few years
+  have also brought a revolution in geometry processing (dense reconstruction,
+  text to 3D, etc.). Some of this was fueled initially by applications in
+  autonomous driving and virtual/augmented reality in addition to manipulation,
+  which brought advanced sensors and fantastic new algorithms.
+  </p>
+
+  <p>So we will start with geometry because it can provide a solid foundation
+  for our explorations in perception. I must state one caveat -- we will use
+  "pose estimation" as our goal for this chapter because it is concrete and
+  immediately useful. But I would say that I try <i>not</i> to use explicit
+  pose estimation as a concept in our most advanced manipulation systems; in
+  addition to assuming known objects, accurately estimating the pose of an
+  object can be difficult (due to partial views and/or occlusions) and it is
+  often more than we actually need to achieve our manipulation goals.</p>
 
   <section><h1>Cameras and depth sensors</h1>
   
@@ -108,8 +114,7 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
     image at some framerate, play an important role.  But robotics makes heavy
     use of sensors that make an explicit measurement of the distance (between
     the camera and the world) or depth; sometimes in addition to color and
-    sometimes in lieu of color.  Admittedly, some researchers think we should
-    only rely on color images.</p>
+    sometimes in lieu of color.</p>
 
     <subsection><h1>Depth sensors</h1>
     
@@ -153,16 +158,20 @@ output_ports:
       <p>The signals and systems abstraction here is encapsulating a lot of
       complexity.  Inside the implementation of that system is a complete
       rendering engine, like one that you will find in high-end computer games.
-      Drake actually supports multiple rendering engines; for the purposes of
-      this class we will primarily use an OpenGL-based renderer that is suitable
-      for real-time simulation.  In our research we also use Drake's rendering
-      API to connect to high-end <a
+      Drake actually supports multiple <a
+      href="https://drake.mit.edu/doxygen_cxx/group__render__engines.html">rendering
+      engines</a>; for the purposes of this class we will primarily use an
+      OpenGL-based renderer (built on <a href="https://vtk.org/">VTK</a>) that
+      is suitable for real-time simulation. Drake can also connect to high-end
+      <a
       href="https://en.wikipedia.org/wiki/Physically_based_rendering">physically-based
-      rendering (PBR)</a> based on ray tracing, such as the <a
+      rendering (PBR)</a> engines which use ray tracing, such as the <a
       href="https://www.blender.org/features/rendering/">Cycles renderer
-      provided by Blender</a>.  These are most useful when we are trying to
-      render higher quality images e.g. to <i>train</i> a deep perception
-      system; we will discuss them in the deep perception chapters.</p>
+      provided by Blender</a> (see the <a
+      href="https://github.com/RobotLocomotion/drake-blender">Drake-Blender
+      project</a>). These are potentially useful for rendering higher quality
+      images e.g. to <i>train</i> a deep perception system or make a beautiful
+      presentation.</p>
 
       <example class="drake"><h1>Simulating an RGB-D camera</h1>
 
@@ -192,22 +201,25 @@ output_ports:
 
       </example>
     
-      <p>In the <code>HardwareStation</code> diagram of the entire robot
-      system for class, the <code>RgbdSensors</code> have already been added,
-      and their output ports exposed as outputs for the station.</p>
+      <p>In the <code>HardwareStation</code> workflow, if cameras are declared
+      in the scenario data (e.g. Yaml description), then the
+      <code>RgbdSensors</code> are added automatically inside the
+      <code>HardwareStation</code> diagram, and their output ports exposed as
+      outputs (in order to match the true interface that we have with the
+      hardware).</p>
 
       <subsection><h1>Sensor noise and depth dropouts</h1>
 
         <p>Real depth sensors, of course, are far from ideal -- and errors in
-        depth returns are not simple Gaussian noise, but rather are dependent on
-        the lighting conditions, the surface normals of the object, and the
-        visual material properties of the object, among other things.  The color
-        channels are an approximation, too.  Even our high-end renderers can
-        only do as well as the geometries, materials and lighting sources that
-        we add to our scene, and it is very hard to capture all of the nuances
-        of a real environment.  We will examine real sensor data, and the gaps
-        between modeled sensors and real sensors, after we start understanding
-        some of the basic operations.</p>
+        depth returns are not simple Gaussian noise, but rather are dependent
+        on the lighting conditions, the surface normals of the object, and the
+        visual material properties of the object, among other things.  The
+        color channels are an approximation, too.  Even our high-end renderers
+        can only do well if we add sufficiently accurate geometries, materials
+        and lighting sources to our scene, and it is very hard to capture all
+        of the nuances of a real environment.  We will examine real sensor
+        data, and the gaps between modeled sensors and real sensors, after we
+        start understanding some of the basic operations.</p>
 
         <figure><img style="width:95%"
         src="data/Sweeney18a_fig3.png"/><figcaption>Real depth sensors are
@@ -218,7 +230,7 @@ output_ports:
         <elib>Sweeney18a</elib>.</figcaption></figure>
 
       </subsection>
-      <subsection><h1>Occlusions and partial views</h1>
+      <subsection id="partial_views"><h1>Occlusions and partial views</h1>
     
       <p>The view of the mustard bottle in the example above makes one primary
       challenge of working with cameras very clear. Cameras don't get to see
@@ -257,10 +269,11 @@ output_ports:
     convert between these representations; though sometimes that conversion can
     be lossy. Examples include triangulated surface meshes and tetrahedral
     volumetric meshes, voxel/occupancy grids, and implicit representations of
-    geometry like the signed distance fields, which have become very popular
-    again recently as representations in deep learning for 3D
-    vision<elib>Park19+Mildenhall21</elib>. But the representations that we
-    will start with here are <i>depth images</i> and <i>point clouds</i>.</p>
+    geometry like the signed distance functions and Neural Radiance Fields
+    (NeRFs), which have become very popular again recently as representations
+    in deep learning for 3D vision<elib>Park19+Mildenhall21</elib>. But the
+    representations that we will start with here are <i>depth images</i> and
+    <i>point clouds</i>.</p>
 
     <p>The data returned by a depth camera takes the form of an image, where
     each pixel value is a single number that represents the distance between the
@@ -394,28 +407,31 @@ output_ports:
     <i>model points</i>, $m_i$, with their pose described in the object frame:
     $^OX^{m_i}.$ </p>
 
+    <todo>The hypothes.is comment is right, I should add a diagram w/ model and scene points.</todo>
+
     <p>Our second point cloud will be the <i>scene points</i>, $s_i$, that we
     obtain from our depth camera, transformed (via the camera intrinsics) into
     the camera coordinates, $^CX^{s_i}$.  I'll use $N_m$ and $N_s$ for the
     number of model and scene points, respectively.</p>  
       
     <p>Let us assume, for now, that we also know $X^C.$  Is this reasonable? In
-    the case of a wrist-mounted camera, this would amount to solving the forward
-    kinematics of the arm.  In an environment-mounted camera, this is about
-    knowing the pose of the cameras in the world.  Small errors in estimating
-    those poses, though, can lead to large artifacts in the estimated point
-    clouds.  We therefore take great care to perform <a
-    href="station.html">camera extrinsics calibration</a>; I've linked to our
-    calibration code in the <a href="station.html">appendix</a>.  Note that if
-    you have a mobile manipulation platform (an arm mounted on a moving base),
-    then all of these discussions still apply, but you likely will perform all
-    of your registration in the robot's frame instead of the world frame.</p>
+    the case of a wrist-mounted camera, this would amount to solving the
+    forward kinematics of the arm.  In an environment-mounted camera, this is
+    about knowing the pose of the cameras in the world.  Small errors in
+    estimating those poses, though, can lead to large artifacts in the
+    estimated point clouds.  We therefore take great care to perform <a
+    href="https://www.mathworks.com/help/vision/ug/camera-calibration.html">camera
+    extrinsics calibration</a>; I've linked to our calibration code in the <a
+    href="station.html">appendix</a>.  Note that if you have a mobile
+    manipulation platform (an arm mounted on a moving base), then all of these
+    discussions still apply, but you likely will perform all of your
+    registration in the robot's frame instead of the world frame.</p>
 
     <p>The second <b>major assumption</b> that we will make in this section is
-    "known correspondences". When I say "correspondence" here, I mean here that
-    for each point in the scene point cloud, we can identify it with a specific
+    "known correspondences". When I say "correspondence" here, I mean that for
+    each point in the scene point cloud, we can pair it with a specific
     point in the model point cloud; for instance, this might be the case if
-    each point had a unique color that we could perceive reliable through the
+    each point had a unique color that we could perceive reliably through the
     camera. This is <i>not</i> a reasonable assumption in practice, but it
     helps us get started.  To represent this mapping in our equations, I'll use
     a correspondence vector $c \in [1,N_m]^{N_s}$, where $c_i = j$ denotes that
@@ -424,10 +440,10 @@ output_ports:
     corresponds to some model point, but the converse is not true, and multiple
     scene points may correspond to the same model point.</p>
 
-    <p>As a result, the point cloud registration problem is simply an (inverse)
+    <p>As a result, the point-cloud registration problem is simply an (inverse)
     kinematics problem.  We can write the model points and the scene points in a
-    common frame (here the world frame), $$p^{m_{c_i}} = X^O \: {}^Op^{m_{c_i}}
-    = X^C \: {}^Cp^{s_i},$$ leaving a single unknown transform, $X^O$, for which
+    common frame (here the world frame), $${}^W p^{m_{c_i}} = {}^W X^O \: {}^Op^{m_{c_i}}
+    = {}^W X^C \: {}^Cp^{s_i},$$ leaving a single unknown transform, $X^O$, for which
     we must solve.  In the previous chapter I argued for using differential
     kinematics instead of inverse kinematics; why is my story different here?
     Differential kinematics can still be useful for perception, for example if
@@ -510,8 +526,8 @@ output_ports:
       <p>In the case with no noise in the measurements (e.g. the scene points
       are exactly the model points modified by a rotation matrix), then the
       minimum of the objective function already satisfies the constraint.  But
-      if you add just a little noise to the points, then this is no longer true,
-      and the constraint starts to play an important role.</p>
+      if you add just a little noise to the points, then this is no longer
+      true, and the constraint starts to play an important role.</p>
     </example>
 
     <p>The geometry should be roughly the same in 3D, though clearly in much
@@ -1315,22 +1331,20 @@ output_ports:
     <exercise><h1>How many points do you need?</h1>
     
       <p>Consider the problem of point cloud registration with known
-      correspondences.  I said that, in most cases, we have far more points than
-      we have decision variables, and therefore treating each as an equality
-      constraint would make the problem over-constrained.  That raises a natural
-      question: 
+      correspondences.  Points can be directly mapped to corresponding model points to 
+      specify the position and orientation of an object in the scene.  In most cases, we have far more points 
+      than we have decision variables on the object's pose.  Therefore, treating each point 
+      correspondence as an equality constraint would make the problem over-constrained.  
+      This raises a natural question: 
 
       <ol type="a">
-          <li>What is the minimal number of points required to uniquely
-      specify a pose in 2d? Provide a brief mathematical justification.</li> 
-          <li>What is the minimal number of points required to uniquely
-      specify a pose in 3d? Provide a brief mathematical justification.</li>   
+          <li>What is the minimum number of points that can uniquely
+      specify the pose of an object in 2D?  Provide a brief mathematical justification.</li> 
+          <li>What is the minimum number of points that can uniquely
+      specify the pose of an object in 3D?  Provide a brief mathematical justification.</li>   
       </ol></p>
 
-      <!-- 2 points is sufficient in 2D.  3 in 3D.  The disconnect to our
-      intuition (e.g. how many points required to specify a plane), is because
-      these points have unique IDs from the correspondences.  And reflections
-      aren't allowed.  -->
+      (HINT: How might your answers change if point correspondences were unknown?)
     
     </exercise>
 
@@ -1416,7 +1430,7 @@ output_ports:
 
 
     <exercise><h1>Planar Two-Point ICP</h1>
-      <p>We saw that ICP has many local minimas. But what are these local
+      <p>We saw that ICP has many local minima. But what are these local
       minimas, and can we say something about how wrong our initial guess has
       to be until we arrive at one of these local minima? Although the analysis
       can get complicated for general geometry, let's start by analyzing a
@@ -1567,9 +1581,9 @@ output_ports:
 
   <exercise id="sdf"><h1>Composing Signed Distance Functions (SDFs)</h1>
 
-    <p>In this problem we will explore signed distance functions and their composition! As a reminder, the signed distance function of a set gives the minimum distance of a point p to the boundary of that set, where the sign of the value is based on whether the point p is inside or outside the boundary. Points that are on the interior of the boundary are negative. and points that are on the exterior of the boundary are positive.</p>
+    <p>In this problem we will explore signed distance functions and their composition! As a reminder, the signed distance function of a set gives the minimum distance of a point $p$ to the boundary of that set, where the sign of the value is based on whether the point $p$ is inside or outside the boundary. Points that are on the interior of the boundary are negative. and points that are on the exterior of the boundary are positive.</p>
 
-       <p>For a 2D example, consider the green box visualized below. The center of the box, at the origin, has a signed distance value of -1, since it is distance one from any of the edges of the box and it lies on the interior of the box. Points along the perimeter of the box have a signed distance value of 0. Any points outside the box have a signed distance value of +d where d is the smallest distance between that bound and the perimeter of the box.</p>
+       <p>For a 2D example, consider the green box visualized below. The center of the box, at the origin, has a signed distance value of -1, since it is distance one from any of the edges of the box and it lies on the interior of the box. Points along the perimeter of the box have a signed distance value of 0. Any points outside the box have a signed distance value of $+d$ where $d$ is the smallest distance between that point and the perimeter of the box.</p>
 
     <figure>
       <img style="width:25%", src="figures/exercises/sdf_box.png"/>
@@ -1582,19 +1596,20 @@ output_ports:
     </figure>
 
     <ol type="a">
-      <li> First, lets consider a new region defined as the union of red object and the blue object. Let $\phi_{r \cup b}(p)$ be the signed distance value of a point p to this new boundary. Compute: $\phi_{r \cup b}(p_{0}), \phi_{r \cup b}(p_{1}), \phi_{r \cup b}(p_{2})$. </li>
+      <li> First, lets consider a new region defined as the union of red object and the blue object. Let $\phi_{r \cup b}(p)$ be the signed distance value of a point $p$ to this new boundary. Compute: $\phi_{r \cup b}(p_{0}), \phi_{r \cup b}(p_{1}), \phi_{r \cup b}(p_{2})$. </li>
 
-      <li> Next, lets consider a new region defined as the intersection of the red object and the blue object (hence the purple object). Let $\phi_{r \cap b}(p)$ be the signed distance value of a point p to this new boundary. Compute: $\phi_{r \cap b}(p_{0}), \phi_{r \cap b}(p_{1}), \phi_{r \cap b}(p_{2})$. </li>
+      <li> Next, lets consider a new region defined as the intersection of the red object and the blue object (hence the purple object). Let $\phi_{r \cap b}(p)$ be the signed distance value of a point $p$ to this new boundary. Compute: $\phi_{r \cap b}(p_{0}), \phi_{r \cap b}(p_{1}), \phi_{r \cap b}(p_{2})$. </li>
 
-      <li> Using your experience from part (a), describe a method for computing the signed distance value for any point p in our 2D space to the <b>union</b> of the red and blue objects. Your method should, in part, leverage the individual signed distance values of the objects. We'd encourage you to think in terms of cases based on what region(s) the point is in.
-Using your experience from part (b), describe an analogous method for compute the signed distance value to the <b>intersection</b> of the red and blue objects (i.e. the purple region). HINT: Write a case statement that cases on the 4 regions, then try to reduce it to 2 cases with a clean math expression. </li>
+      <li> Using your experience from part (a), write an expression for computing the signed distance value for any point $p$ in our 2D space to the <b>union</b> of the red and blue objects. Your expression should be in terms of $\phi_r(p)$ and $\phi_b(p)$. We encourage you to think in terms of cases based on what region the point is in. HINT: Write a case statement that cases on the 4 regions, then try to reduce it to 2 cases with a clean math expression.</li>
+
+      <li> Using your experience from part (b), write an analogous expression for computing the signed distance value for any point $p$ to the <b>intersection</b> of the red and blue objects (i.e. the purple region). Your expression should be in terms of $\phi_r(p)$ and $\phi_b(p)$, and it can be written considering only 2 cases.</li>
     </ol>
 
     <p>One incorrect method to compute the SDF value for the union of two objects is to simply take the minimum of the SDF value for each of the objects. (It is worth taking a minute to convince yourself why this method is incorrect!). While this method can produce the incorrect distance, it will produce a value with the correct sign (again, convince yourself this is true!). <br/>
     Therefore, this "incorrect" method can tell us if we are in penetration or out of penetration for the union of our set of objects. This makes it useful for computing a non-penetration constraint! We'll refer to the SDF generated by this "incorrect-but-useful" method as Penetration-Constraint-SDF. <br/>
     Let's see how we can use this!</p>     
 
-    <ol type="a" start=4>
+    <ol type="a" start=5>
       <li>  As discussed in class, for rigid objects, we can precompute the SDF
       for the object, which enables us to greatly speed up computations.
       However, if we are dealing with an articulated body, such as a robot arm,

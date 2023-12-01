@@ -138,7 +138,7 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
       <li>Invertibility of the Jacobian</li>
     </ul>
     <li><a href=pick.html#section7>Defining the grasp and pre-grasp poses</a></li>
-    <li><a href=pick.html#section8>A pick and place trajectory</a></li>
+    <li><a href=pick.html#pick_and_place_trajectory>A pick and place trajectory</a></li>
     <li><a href=pick.html#section9>Putting it all together</a></li>
     <li><a href=pick.html#diff_ik_w_constraints>Differential inverse kinematics with
   constraints</a></li>
@@ -188,35 +188,41 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
     <li><a href=clutter.html#section1>Generating random cluttered scenes</a></li>
     <ul>
       <li>Falling things</li>
-      <li>Static equilibrium with frictional contact</li>
-      <ul>
-        <li>Collision geometry</li>
-        <li>The Contact Frame</li>
-        <li>The (Coulomb) Friction Cone</li>
-        <li>Static equilibrium as an optimization problem</li>
-      </ul>
     </ul>
-    <li><a href=clutter.html#section2>A few of the nuances of simulating contact</a></li>
-    <li><a href=clutter.html#section3>Model-based grasp selection</a></li>
+    <li><a href=clutter.html#section2>Static equilibrium with frictional contact</a></li>
     <ul>
       <li>Spatial force</li>
+      <li>Collision geometry</li>
+      <li>Contact forces between bodies in collision</li>
+      <li>The Contact Frame</li>
+      <li>The (Coulomb) Friction Cone</li>
+      <li>Static equilibrium as an optimization problem</li>
+    </ul>
+    <li><a href=clutter.html#section3>Contact simulation</a></li>
+    <li><a href=clutter.html#section4>Model-based grasp selection</a></li>
+    <ul>
       <li>The contact wrench cone</li>
       <li>Colinear antipodal grasps</li>
     </ul>
-    <li><a href=clutter.html#section4>Grasp selection from point clouds</a></li>
+    <li><a href=clutter.html#section5>Grasp selection from point clouds</a></li>
     <ul>
       <li>Point cloud pre-processing</li>
       <li>Estimating normals and local curvature</li>
       <li>Evaluating a candidate grasp</li>
       <li>Generating grasp candidates</li>
     </ul>
-    <li><a href=clutter.html#section5>The corner cases</a></li>
+    <li><a href=clutter.html#section6>The corner cases</a></li>
     <li><a href=clutter.html#task>Programming the Task Level</a></li>
-    <li><a href=clutter.html#section7>Putting it all together</a></li>
+    <ul>
+      <li>State Machines and Behavior Trees</li>
+      <li>Task planning</li>
+      <li>Large Language Models</li>
+      <li>A simple state machine for "clutter clearing"</li>
+    </ul>
+    <li><a href=clutter.html#section8>Putting it all together</a></li>
     <li><a href=clutter.html#exercises>Exercises</a></li>
   </ul>
-  <li><a href="mobile.html">Chapter 6: Mobile Manipulation</a></li>
-  <li><a href="trajectories.html">Chapter 7: Motion Planning</a></li>
+  <li><a href="trajectories.html">Chapter 6: Motion Planning</a></li>
   <ul>
     <li><a href=trajectories.html#section1>Inverse Kinematics</a></li>
     <ul>
@@ -236,10 +242,44 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
       <li>Rapidly-exploring random trees (RRT)</li>
       <li>The Probabilistic Roadmap (PRM)</li>
       <li>Post-processing</li>
+      <li>Sampling-based planning in practice</li>
+    </ul>
+    <li><a href=trajectories.html#gcs>Graphs of Convex Sets (GCS)</a></li>
+    <ul>
+      <li>Convex decomposition of (collision-free) configuration
+    space</li>
+      <li>Graphs of Convex Sets</li>
+      <li>GCS (Kinematic) Trajectory Optimization</li>
+      <li>Variations and Extensions</li>
     </ul>
     <li><a href=trajectories.html#topp>Time-optimal path parameterizations</a></li>
-    <li><a href=trajectories.html#section5>Graphs of Convex Sets</a></li>
     <li><a href=trajectories.html#section6>Exercises</a></li>
+  </ul>
+  <li><a href="mobile.html">Chapter 7: Mobile Manipulation</a></li>
+  <ul>
+    <li><a href=mobile.html#section1>A New Cast of Characters</a></li>
+    <li><a href=mobile.html#section2>What's different about perception?</a></li>
+    <ul>
+      <li>Partial views / active perception</li>
+      <li>Unknown (potentially dynamic) environments</li>
+      <li>Robot state estimation</li>
+    </ul>
+    <li><a href=mobile.html#section3>What's different about motion planning?</a></li>
+    <ul>
+      <li>Wheeled robots</li>
+      <ul>
+        <li>Holonomic drives</li>
+        <li>Nonholonomic drives</li>
+      </ul>
+      <li>Legged robots</li>
+    </ul>
+    <li><a href=mobile.html#section4>What's different about simulation?</a></li>
+    <li><a href=mobile.html#section5>Navigation</a></li>
+    <ul>
+      <li>Mapping (in addition to localization)</li>
+      <li>Identifying traversable terrain</li>
+    </ul>
+    <li><a href=mobile.html#section6>Exercises</a></li>
   </ul>
   <li><a href="force.html">Chapter 8: Manipulator Control</a></li>
   <ul>
@@ -271,6 +311,8 @@ Segmentation</a></li>
       <li>Segmenting new classes via fine tuning</li>
       <li>Annotation tools for manipulation</li>
       <li>Synthetic datasets</li>
+      <li>Self-supervised learning</li>
+      <li>Even bigger datasets</li>
     </ul>
     <li><a href=segmentation.html#section2>Object detection and segmentation</a></li>
     <li><a href=segmentation.html#section3>Putting it all together</a></li>
@@ -285,11 +327,18 @@ Segmentation</a></li>
 Manipulation</a></li>
   <ul>
     <li><a href=deep_perception.html#section1>Pose estimation</a></li>
+    <ul>
+      <li>Pose representation</li>
+      <li>Loss functions</li>
+      <li>Pose estimation benchmarks</li>
+      <li>Limitations</li>
+    </ul>
     <li><a href=deep_perception.html#section2>Grasp selection</a></li>
     <li><a href=deep_perception.html#section3>(Semantic) Keypoints</a></li>
-    <li><a href=deep_perception.html#section4>Dense Descriptors</a></li>
-    <li><a href=deep_perception.html#section5>Task-level state</a></li>
-    <li><a href=deep_perception.html#section6>Other perceptual tasks / representations</a></li>
+    <li><a href=deep_perception.html#section4>Dense Correspondences</a></li>
+    <li><a href=deep_perception.html#section5>Scene Flow</a></li>
+    <li><a href=deep_perception.html#section6>Task-level state</a></li>
+    <li><a href=deep_perception.html#section7>Other perceptual tasks / representations</a></li>
     <li><a href=deep_perception.html#exercises>Exercises</a></li>
   </ul>
   <li><a href="rl.html">Chapter 11: Reinforcement Learning</a></li>
@@ -320,14 +369,18 @@ Manipulation</a></li>
     <li><a href=drake.html#section3>Running on your own machine</a></li>
     <li><a href=drake.html#section4>Getting help</a></li>
   </ul>
-  <li><a href="station.html">Appendix B: Setting up your own "Manipulation Station"</a></li>
+  <li><a href="environments.html">Appendix B: DrakeGym Environments</a></li>
+  <ul>
+    <li><a href=environments.html#section1>Box Flipup</a></li>
+  </ul>
+  <li><a href="station.html">Appendix C: Setting up your own "Manipulation Station"</a></li>
   <ul>
     <li><a href=station.html#section1>Message Passing</a></li>
     <li><a href=station.html#section2>Kuka LBR iiwa + Schunk WSG Gripper</a></li>
-    <li><a href=station.html#section3>Intel Realsense D415 Depth Cameras</a></li>
-    <li><a href=station.html#section4>Miscellaneous hardware.</a></li>
+    <li><a href=station.html#section3>Franka Panda</a></li>
+    <li><a href=station.html#section4>Intel Realsense D415 Depth Cameras</a></li>
   </ul>
-  <li><a href="misc.html">Appendix C: Miscellaneous</a></li>
+  <li><a href="misc.html">Appendix D: Miscellaneous</a></li>
   <ul>
     <li><a href=misc.html#cite>How to cite these notes</a></li>
     <li><a href=misc.html#annotation>Annotation tool etiquette</a></li>

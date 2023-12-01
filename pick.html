@@ -161,12 +161,12 @@ href="https://www.youtube.com/channel/UChfUOAhz7ynELF-s_1LPpWg">Lecture  videos 
 
     <p>Frames also have an orientation.  We'll use $R$ to denote a
     <i>rotation</i>, and follow the same notation, writing $^BR^A$ to denote
-    the rotation of frame $A$ measured from frame $B$.  Unlike vectors, pure
+    the orientation of frame $A$ measured from frame $B$.  Unlike vectors, pure
     rotations do not have an additional "expressed in" frame.</p>
 
     <p>A frame $F$ can be specified completely by a position and rotation
     measured from another frame.  Taken together, we call the position and
-    rotation a <a
+    orientation a <a
     href="https://drake.mit.edu/doxygen_cxx/group__multibody__spatial__pose.html">
     <i>spatial pose</i></a>, or just <i>pose</i>.  A <i>spatial transform</i>,
     or just <i>transform</i>, is the "verb form" of pose.  In Drake we use <a
@@ -588,8 +588,8 @@ pose = plant.EvalBodyPoseInWorld(context, gripper)</pre></code>
     velocity, but not for rotations?  Using the magnitude of an axis-angle
     representation to denote an angle is degenerate because our representation
     of angles should be periodic in $2\pi$, but using the magnitude of the
-    angular velocity is ok because angular velocities take values from $(-\inf,
-    \inf)$ without wrapping.</p>
+    angular velocity is ok because angular velocities take values from
+    $(-\infty, \infty)$ without wrapping.</p>
 
     <p>There is one more velocity to be aware of: I'll use $v$ to denote the
     generalized velocity vector of the plant, which is closely related to the
@@ -605,19 +605,21 @@ pose = plant.EvalBodyPoseInWorld(context, gripper)</pre></code>
     <example id="qdot_vs_v"><h1>Don't assume $\dot{q} \equiv v$</h1>
     
       <p>The unit quaternion representation is four components, but these must
-      form a "unit vector" of length 1.  Rotation matrices are 9 components, but
-      they must form an orthonormal matrix with $\det(R)=1$.  It's pretty great
-      that for <i>changes</i> in rotation, we can use an <i>unconstrained</i>
-      three component vector, what we've called the angular velocity vector,
-      $\omega$.  And you really should use it; getting rid of that constraint
-      makes both the math and the numerics better.</p>
+      form a "unit vector" of length 1.  Rotation matrices are 9 components,
+      but they must form an orthonormal matrix with $\det(R)=1$.  It's pretty
+      great that for the time derivative of rotation, we can use an
+      <i>unconstrained</i> three component vector, what we've called the
+      angular velocity vector, $\omega$.  And you really should use it; getting
+      rid of that constraint makes both the math and the numerics better.</p>
 
       <p>But there is one minor nuisance that this causes.  We tend to want to
       think of the generalized velocity as the time derivative of the
       generalized positions.  This works when we have only our iiwa in the
-      model, and it is welded to the world frame.  But we cannot assume this in
-      general; not when floating-base rotations are concerned.  As evidence,
-      here is a simple example that loads exactly one rigid body into the
+      model, and it is welded to the world frame, because all of the joints are
+      revolute joints with a single degree of freedom each.  But we cannot
+      assume this in general; when floating-base rotations part of the
+      generalized position. As evidence, here is a simple example that loads
+      exactly one rigid body into the
       <code>MultibodyPlant</code>, and then prints its
       <code>Context</code>.</p>
 
@@ -632,18 +634,22 @@ States:
     1 0 0 0 0 0 0 0 0 0 0 0 0
 
 plant.num_positions() = 7
-plant.num_velocities() = 6</pre></code></p>
+plant.num_velocities() = 6
+
+
+Position names: ['$world_base_link_qw', '$world_base_link_qx', '$world_base_link_qy', '$world_base_link_qz', '$world_base_link_x', '$world_base_link_y', '$world_base_link_z']
+Velocity names: ['$world_base_link_wx', '$world_base_link_wy', '$world_base_link_wz', '$world_base_link_vx', '$world_base_link_vy', '$world_base_link_vz']</pre></code></p>
 
       <p>You can see that this system has 13 total state variables.  7 of them
-      are positions, $q$; we use unit quaternions in the position vector.  But
-      we have just 6 velocities, $v$; we use angular velocities in the
-      velocity vector.  Clearly, if the length of the vectors don't even match,
-      we do <i>not</i> have $\dot{q} = v$.</p>
+      are positions, $q$, because we use unit quaternions in the position
+      vector.  But we have just 6 velocities, $v$; we use angular velocities in
+      the velocity vector.  Clearly, if the length of the vectors don't even
+      match, we do <i>not</i> have $\dot{q} = v$.</p>
 
-      <p>It's not really any harder; Drake provides the
-      <code>MultibodyPlant</code> methods <code>MapQDotToVelocity</code> and
-      <code>MapVelocityToQDot</code> to go back and forth between them.  But you
-      have to remember to use them!</p>
+      <p>It is not difficult to deal with this representational detail; Drake
+      provides the <code>MultibodyPlant</code> methods
+      <code>MapQDotToVelocity</code> and <code>MapVelocityToQDot</code> to go
+      back and forth between them.  But you have to remember to use them!</p>
 
     </example>
 
@@ -678,11 +684,10 @@ plant.num_velocities() = 6</pre></code></p>
 
   <section><h1>Differential inverse kinematics</h1>
     
-    <p>There is important structure in Eq \eqref{eq:jacobian}.  Make sure you
-    didn't miss it.  The relationship between joint velocities and end-effector
-    velocities is (configuration-dependent) linear: \begin{equation}V^G =
-    J^G(q)v.\end{equation}  Maybe this gives us what we need to produce changes
-    in gripper frame $G$?  If I have a desired gripper frame velocity $V^{G_d}$,
+    <p>The geometric Jacobian provides a linear relationship between
+    generalized velocity and spatial velocity: \begin{equation}V^G =
+    J^G(q)v.\end{equation} Can this gives us what we need to produce changes in
+    gripper frame $G$? If I have a desired gripper frame velocity $V^{G_d}$,
     then how about commanding a joint velocity $v = \left[J^G(q)\right]^{-1}
     V^{G_d}$?</p>
 
@@ -757,12 +762,13 @@ plant.num_velocities() = 6</pre></code></p>
 
       <p>There is a simple check to understand when the pseudo-inverse can give
       an exact solution for any spatial velocity (achieving exactly the desired
-      spatial velocity): the Jacobian must be full <i>row</i>-rank.  In this
-      case, we need $\rank(J) = 6$. But assigning an integer rank to a matrix
-      doesn't tell the entire story; for a real robot with (noisy)
-      floating-point joint positions, as the matrix gets <i>close</i> to losing
-      rank, the (pseudo-)inverse starts to "blow-up".  A better metric, then,
-      is to watch the smallest <a
+      spatial velocity): the <i>rank</i> of the Jacobian must be equal to the
+      number of rows (sometimes called "full row rank").  In this case, we need
+      $\rank(J) = 6$. But assigning an integer rank to a matrix doesn't tell
+      the entire story; for a real robot with (noisy) floating-point joint
+      positions, as the matrix gets <i>close</i> to losing rank, the
+      (pseudo-)inverse starts to "blow-up".  A better metric, then, is to watch
+      the smallest <a
       href="https://en.wikipedia.org/wiki/Singular_value_decomposition">singular
       value</a>; as this approaches zero, the norm of the pseudo-inverse will
       approach infinity.</p>
@@ -780,20 +786,21 @@ plant.num_velocities() = 6</pre></code></p>
         straight, (e.g. driving joint 2 and 4 close to zero).</p>
 
         <p>Another good way to find the singularities are to use your
-        pseudo-inverse controller to send gripper spatial velocity commands that
-        drive the gripper to the limits of the robot's workspace.  Try it and
-        see!  In fact, this is the common case, and one that we will work hard
-        to avoid.</p>
+        pseudo-inverse controller to send gripper spatial velocity commands
+        that drive the gripper to the limits of the robot's workspace.  Try it
+        and see!  In fact, this can happen easily in practice when using
+        end-effector commands, and we will work hard to avoid it.</p>
 
       </example>
 
       <p>Configurations $q$ for which $\rank(J(q_{iiwa})) < 6$ for a frame of
       interest (like our gripper frame $G$) are called <i>kinematic
-      singularities</i>.  Try to avoid going near them if you can!  The iiwa has
-      many virtues, but admittedly its kinematic workspace is not one of them.
-      Trust me, if you try to get a big Kuka to reach into a little kitchen sink
-      all day, every day, then you will spend a non-trivial amount of time
-      thinking about avoiding singularities.</p>
+      singularities</i>.  Try to avoid going near them if you are using
+      end-effector control!  The iiwa has many virtues, but admittedly its
+      kinematic workspace is not one of them. Trust me, if you try to get a big
+      Kuka to reach into a little kitchen sink all day, every day, then you
+      will spend a non-trivial amount of time thinking about avoiding
+      singularities.</p>
 
       <p>In practice, things can get a lot better if we stop bolting our robot
       base to a fixed location in the world.  Mobile bases add complexity, but
@@ -803,12 +810,15 @@ plant.num_velocities() = 6</pre></code></p>
 
         <p>A natural question when discussing singularities is whether they are
         somehow real, or whether they are somehow an artifact of the analysis.
-        Perhaps it is useful to look at an extremely simple case.</p>
+        Does the robot blow up? Does it get mechanically stuck? Or is it just
+        our math that is broken? Perhaps it is useful to look at an extremely
+        simple case.</p>
 
         <p>Imagine a two-link arm, where each link has length one.  Then the
         kinematics reduce to $$p^G = \begin{bmatrix} c_0 + c_{0+1} \\ s_0 +
         s_{0 + 1} \end{bmatrix},$$  where I've used the (very common) shorthard
-        $s_0$ for $\sin(q_0)$ and $s_{0+1}$ for $\sin(q_0+q_1)$, etc. The
+        $s_0$ for $\sin(q_0)$, $c_0$ for $\cos(q_0)$, $s_{0+1}$ for
+        $\sin(q_0+q_1),$ etc. The
         <i>translational</i> Jacobian is $$J^G(q) = \begin{bmatrix} -s_0 -
         s_{0+1} & -s_{0 + 1} \\ c_0 + c_{0 + 1} & c_{0 + 1} \end{bmatrix},$$
         and as expected, it loses rank when the arm is at full extension (e.g.
@@ -936,7 +946,7 @@ plant.num_velocities() = 6</pre></code></p>
   
   </section>
 
-  <section><h1>A pick and place trajectory</h1>
+  <section id="pick_and_place_trajectory"><h1>A pick and place trajectory</h1>
   
     <p>We're getting close.  We know how to produce desired gripper poses, and
     we know how to change the gripper pose instantaneously using spatial
@@ -1104,33 +1114,41 @@ plant.num_velocities() = 6</pre></code></p>
     <p>Since we know the limits of the iiwa, a better approach is to take these
     constraints into account at the level of our controller.  It's relatively
     straight-forward to take position, velocity, and acceleration constraints
-    into account; torques would require a full dynamics model so we won't worry
-    about them yet here.</p>
+    into account; torque constraints require a full dynamics model so we won't
+    worry about them yet here (but they <i>can</i> plug in naturally to this
+    framework).</p>
 
     <subsection><h1>Pseudo-inverse as an optimization</h1>
 
-      <p>I introduced the pseudo-inverse as having almost magical properties: it
-      returns an exact solution when one is available, or the best possible
+      <p>I introduced the pseudo-inverse as having almost magical properties:
+      it returns an exact solution when one is available, or the best possible
       solution (in the least-squares norm) when one is not.  These properties
       can all be understood by realizing that the pseudo-inverse is just the
-      optimal solution to a least-squares optimization problem: \begin{equation}
-      \min_v \left|J^G(q)v - V^{G_d}\right|^2_2. \end{equation}  When I write an
-      optimization of this form, I will refer to $v$ as the decision
-      variable(s), and I will use $v^*$ to denote the optimal solution (the
-      value of the decision variables that minimizes the cost).  Here we have
-      $$v^* = \left[ J^G(q) \right]^+V^{G_d}.$$</p>
+      optimal solution to a least-squares optimization problem:
+      \begin{equation} \min_v \left|J^G(q)v - V^{G_d}\right|^2_2.
+      \end{equation}  When I write an optimization of this form, I will refer
+      to $v$ as the decision variable(s), and I will use $v^*$ to denote the
+      optimal solution (the value of the decision variables that minimizes the
+      cost).  This particular optimization problem has a closed-form solution,
+      which just happens to be exactly what is provided by the pseudo-inverse:
+      $$v^* = \left[ J^G(q) \right]^+V^{G_d}.$$ More generally, we will expect
+      to employ numerical methods to solve optimization problems.</p>
 
       <p>Optimization is an incredibly rich topic, and we will put many tools
-      from optimization theory to use over the course of this text.  For a
-      beautiful rigorous but accessible treatment of convex optimization, I
-      highly recommend <elib>Boyd04a</elib>; it is free online and even reading
-      the first chapter can be incredibly valuable.  For a very short
-      introduction to using optimization in Drake, please take a look at the
-      tutorials on "Solving Mathematical Programs" linked from the Drake <a
-      href="http://drake.mit.edu">front page</a>.  I use the term "mathematical
-      program" almost synonymously with "optimization problem".  Mathematical
-      program is slightly more appropriate if we don't actually have an
-      objective; only constraints.</p>
+      from optimization to use over the course of this text.  For a beautiful
+      rigorous but accessible treatment of convex optimization, I highly
+      recommend <elib>Boyd04a</elib>; it is free online and even reading the
+      first chapter can be incredibly valuable.  For a very short introduction
+      to using optimization in Drake, please take a look at the
+      <script>document.write(notebook_link(
+        'tutorials',
+        d=drake_deepnote,
+        link_text='tutorials on MathematicalProgram',
+        notebook='mathematical_program',
+        workspace_id=drake_workspace_id))</script>.
+      I use the term "mathematical program" almost synonymously with
+      "optimization problem".  Mathematical program is perhaps slightly more
+      appropriate if we don't actually have an objective; only constraints.</p>
     
     </subsection>
 
@@ -1140,7 +1158,7 @@ plant.num_velocities() = 6</pre></code></p>
       optimization, we have a natural route to generalizing our approach to
       explicitly reason about the constraints.  The velocity constraints are the
       most straight-forward to add.  \begin{align} \min_v && \left|J^G(q)v -
-      V^{G_d}\right|^2_2, \\ \subjto && v_{min} \le v \le v_{max}. \nonumber
+      V^{G_d}\right|^2_2\,, \\ \subjto && v_{min} \le v \le v_{max}. \nonumber
       \end{align}  You can read this as "find me the joint velocities that
       achieve my desired gripper spatial velocity as closely as possible, but
       satisfy my joint velocity constraints."  The solution to this can be much
@@ -1211,7 +1229,7 @@ plant.num_velocities() = 6</pre></code></p>
       <p>In the rich history of Jacobian-based control for robotics, there is a
       very elegant idea of implementing a "secondary" control, guaranteed (in
       some cases) not to interfere with our primary end-effector spatial
-      velocity controller, by projecting it into the <i>nullspace</i> of $J^G$.
+      velocity controller, by projecting it into the <i>null space</i> of $J^G$.
       So in order to fully specify the problem, we will provide a secondary
       controller that attempts to control <i>all</i> of the joints.  We'll do
       that here with a simple joint-space controller $v = K(q_0 - q)$; this is
@@ -1221,7 +1239,7 @@ plant.num_velocities() = 6</pre></code></p>
       <p>Denote $P(q)$ as an orthonormal basis for the kernel of a Jacobian $J$.
       Traditionally in robotics we implemented this using the pseudo-inverse: $P
       = (I - J^+J)$, but many linear algebra packages now provide methods to
-      obtain one more directly.  Adding $Pv \approx Pk(q_0 - q)$ as a secondary
+      obtain one more directly.  Adding $Pv \approx PK(q_0 - q)$ as a secondary
       objective can be accomplished with \begin{align}\min_{v_n} \quad &
       \left|J^G(q)v_n - V^{G_d}\right|^2_2 + \epsilon \left|P(q)\left(v_n -
       K(q_0 - q)\right)\right|^2_2, \\ \subjto \quad &
@@ -1238,8 +1256,8 @@ plant.num_velocities() = 6</pre></code></p>
 
       <p>There are more sophisticated methods if one wishes to establish a
       strict task prioritization in the presence of constraints (e.g.
-      <elib>Flacco15+Escande14</elib>), but for th simple prioritization we have
-      formulated here, the penalty method is quite reasonable.</p>
+      <elib>Flacco15+Escande14</elib>), but for the simple prioritization we
+      have formulated here, the penalty method is quite reasonable.</p>
 
     </subsection>
 
@@ -1502,7 +1520,7 @@ plant.num_velocities() = 6</pre></code></p>
     compete.</p>
 
     <p>This seems like an overly simple example.  But I think you'll find that
-    it is actually quite similar to what is happening in the nullspace objective
+    it is actually quite similar to what is happening in the null-space objective
     formulation above.</p>
 
   </exercise>
@@ -1527,6 +1545,20 @@ plant.num_velocities() = 6</pre></code></p>
       l_1, l_2, \theta(t)$ and $\dot\theta(t)$. </li>
     </ol>
   </exercise>
+
+  <exercise id="representing_rotations"><h1>Challenges with Representing of Rotations in 3D</h1></exercise>
+  <p>In the section on <a href="#3D_rotation">representing 3D rotations</a>, I mentioned that there is no one representation of 3D rotations that's best for everything. In this problem, you will explore some of the unexpected properties associated with a few of the most commonly used representations.</p>
+
+  <ol type="a">
+    <li><i>Roll-Pitch-Yaw:</i> One way we can represent a rotation is with a set of "roll-pitch-yaw" angles $(r,p,y)$. Refer to Drake's <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1math_1_1_roll_pitch_yaw.html">RollPitchYaw</a> class for conventions on the ordering of these individual angle rotations into a single rotation matrix. Given that $p=-\pi/2$, compute a rotation matrix in terms of $r$ and $y$. In the resulting matrix, how does a change in $r$ compare to a change in $y$? What does this tell us about "roll-pitch-yaw" as a representation for rotations?<br /><br />
+    Hint: Try simplifying your solution using the <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities">angle sum trigonometric identities</a> $$\sin(\alpha+\beta)=\sin\alpha\cos\beta+\cos\alpha\sin\beta$$ $$\cos(\alpha+\beta)=\cos\alpha\cos\beta-\sin\alpha\sin\beta$$.</li>
+    <li><i>Axis-Angle:</i> Consider an orientation obtained by rotating a right-handed coordinate frame about its z-axis by an angle of $\pi/2$ radians. This rotation would result in the positive x-axis pointing in the direction where the positive y-axis was pointing before rotation. One way to represent this rotation is with the axis-angles vector $(0,0,\pi/2)$. (Recall that the vector describes the axis about which the rotation occurs, and its magnitude is the angle of rotation). This representation is not unique. Find two other sets of axis-angles that would give the same rotation.</li>
+    <li><i>Quaternion:</i> A unit quaternion is a set of four numbers $(w,x,y,z)$ such that $w^2+x^2+y^2+z^2=1$. Unit quaternions are an excellent way of representing orientations, since they don't suffer from singularities (unlike the roll-pitch-yaw and axis-angle representations). This makes them reliable for <a href="#pick_and_place_trajectory">interpolating orientations</a>, but unit quaternions still suffer from the "multiple representations" problem.<br /><br />
+    We can turn a unit quaternion $(w,x,y,z)$ into an axis-angle vector $(a_x,a_y,a_z)$ by computing $\theta=2\arccos(w)$, and then $$(a_x,a_y,a_z)=\left\{\begin{array}{ll} \displaystyle\frac{\theta}{\sin(\theta/2)}(x,y,z) & \theta\ne 0\\ (0,0,0) & \theta=0 \end{array}\right.$$ Show that for any unit quaternion $(w,x,y,z)$, $(-w,-x,-y,-z)$ represents the same orientation by converting to axis-angle form, and simplifying the resulting trigonometric expressions.<br /><br />
+    As it turns out, there are precisely two unit quaternions corresponding to each orientation!<br /><br />
+    Hint 1: $\arccos(-\alpha)=\pi-\arccos(\alpha)$ and $\sin(\pi-\beta)=\sin(\beta)$ for any $\alpha$ and $\beta$.<br />
+    Hint 2: Use the fact that for any angle $\theta$, $\theta\pm 2\pi$ represents the same orientation.</li>
+  </ol>
 
   </section>
 
